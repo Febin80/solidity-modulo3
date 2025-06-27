@@ -9,13 +9,6 @@ This project contains two smart contracts deployed on Sepolia testnet:
 
 ---
 
-## Contract Addresses on Sepolia
-
-- MyToken: *[insert your deployed MyToken address]*  
-- SimpleSwap: [0x9f8f02dab384dddf1591c3366069da3fb0018220](https://sepolia.etherscan.io/address/0x9f8f02dab384dddf1591c3366069da3fb0018220)
-
----
-
 ## SimpleSwap Functions
 
 ### addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, to, deadline)
