@@ -1,161 +1,154 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
-// Importamos la interfaz estándar de ERC20
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+interface IERC20 {
+    function totalSupply() external view returns (uint);
+    function balanceOf(address account) external view returns (uint);
+    function transfer(address recipient, uint amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint);
+    function approve(address spender, uint amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint amount) external returns (bool);
+}
 
 contract SimpleSwap {
-    // Estructura que guarda las reservas de un par de tokens
     struct Reserve {
         uint reserveA;
         uint reserveB;
     }
 
-    // Mapeo de pools: tokenA => tokenB => reservas del par
-    mapping(address => mapping(address => Reserve)) public reserves;
+    mapping(address => mapping(address => Reserve)) private reserves;
+    mapping(address => uint) private liquidity;
 
-    // Mapeo de liquidez: usuario => tokenA => tokenB => cantidad de liquidez
-    mapping(address => mapping(address => mapping(address => uint))) public liquidity;
-
-    // Eventos para registrar acciones importantes
-    event LiquidityAdded(address indexed user, address tokenA, address tokenB, uint amountA, uint amountB, uint liquidity);
-    event LiquidityRemoved(address indexed user, address tokenA, address tokenB, uint amountA, uint amountB);
-    event Swapped(address indexed user, address tokenIn, address tokenOut, uint amountIn, uint amountOut);
-
-    // ✅ FUNCION 1: Agregar Liquidez
     function addLiquidity(
-        address tokenA, 
-        address tokenB, 
-        uint amountADesired, 
-        uint amountBDesired, 
-        uint amountAMin, 
-        uint amountBMin, 
-        address to, 
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
         uint deadline
-    ) external returns (uint amountA, uint amountB, uint liquidityMinted) {
-        require(block.timestamp <= deadline, "SimpleSwap: EXPIRED");
+    )
+        external
+        returns (uint amountA, uint amountB, uint liquidityMinted)
+    {
+        require(block.timestamp <= deadline, "EXP");
 
-        // Obtenemos las reservas actuales del pool
         Reserve storage reserve = reserves[tokenA][tokenB];
 
-        // Transferimos los tokens desde el usuario al contrato
-        IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
-        IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
+        uint reserveA = reserve.reserveA;
+        uint reserveB = reserve.reserveB;
 
-        // Asignamos las cantidades efectivas
-        amountA = amountADesired;
-        amountB = amountBDesired;
+        if (reserveA == 0 && reserveB == 0) {
+            amountA = amountADesired;
+            amountB = amountBDesired;
+        } else {
+            uint amountBOptimal = (amountADesired * reserveB) / reserveA;
+            if (amountBOptimal <= amountBDesired) {
+                require(amountBOptimal >= amountBMin, "MINB");
+                amountA = amountADesired;
+                amountB = amountBOptimal;
+            } else {
+                uint amountAOptimal = (amountBDesired * reserveA) / reserveB;
+                require(amountAOptimal >= amountAMin, "MINA");
+                amountA = amountAOptimal;
+                amountB = amountBDesired;
+            }
+        }
 
-        // Verificamos mínimos aceptables para proteger al usuario de cambios de precio
-        require(amountA >= amountAMin && amountB >= amountBMin, "SimpleSwap: INSUFFICIENT_AMOUNT");
+        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), "TF1");
+        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), "TF2");
 
-        // Actualizamos reservas del pool
         reserve.reserveA += amountA;
         reserve.reserveB += amountB;
 
-        // Calculamos la liquidez a entregar (para este ejemplo, simplemente suma de los tokens aportados)
-        liquidityMinted = amountA + amountB;
-        liquidity[to][tokenA][tokenB] += liquidityMinted;
+        liquidity[to] += (amountA + amountB);
 
-        // Emitimos evento de liquidez añadida
-        emit LiquidityAdded(msg.sender, tokenA, tokenB, amountA, amountB, liquidityMinted);
+        liquidityMinted = amountA + amountB;
     }
 
-    // ✅ FUNCION 2: Remover Liquidez
     function removeLiquidity(
-        address tokenA, 
-        address tokenB, 
-        uint liquidityAmount, 
-        uint amountAMin, 
-        uint amountBMin, 
-        address to, 
+        address tokenA,
+        address tokenB,
+        uint liquidityAmount,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
         uint deadline
-    ) external returns (uint amountA, uint amountB) {
-        require(block.timestamp <= deadline, "SimpleSwap: EXPIRED");
+    )
+        external
+        returns (uint amountA, uint amountB)
+    {
+        require(block.timestamp <= deadline, "EXP");
+        require(liquidity[msg.sender] >= liquidityAmount, "LIQ");
 
-        // Obtenemos reservas del pool
         Reserve storage reserve = reserves[tokenA][tokenB];
-        // Verificamos que el usuario tenga liquidez suficiente
-        uint userLiquidity = liquidity[msg.sender][tokenA][tokenB];
-        require(userLiquidity >= liquidityAmount, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
+        uint reserveA = reserve.reserveA;
+        uint reserveB = reserve.reserveB;
 
-        // Calculamos proporción de tokens a devolver
-        uint totalLiquidity = reserve.reserveA + reserve.reserveB;
-        amountA = (reserve.reserveA * liquidityAmount) / totalLiquidity;
-        amountB = (reserve.reserveB * liquidityAmount) / totalLiquidity;
+        amountA = (liquidityAmount * reserveA) / (reserveA + reserveB);
+        amountB = (liquidityAmount * reserveB) / (reserveA + reserveB);
 
-        // Verificamos mínimos aceptables
-        require(amountA >= amountAMin && amountB >= amountBMin, "SimpleSwap: INSUFFICIENT_OUTPUT");
+        require(amountA >= amountAMin, "MINA");
+        require(amountB >= amountBMin, "MINB");
 
-        // Actualizamos reservas
         reserve.reserveA -= amountA;
         reserve.reserveB -= amountB;
-        // Restamos liquidez al usuario
-        liquidity[msg.sender][tokenA][tokenB] -= liquidityAmount;
 
-        // Transferimos tokens al usuario
-        IERC20(tokenA).transfer(to, amountA);
-        IERC20(tokenB).transfer(to, amountB);
+        liquidity[msg.sender] -= liquidityAmount;
 
-        // Emitimos evento de retiro de liquidez
-        emit LiquidityRemoved(msg.sender, tokenA, tokenB, amountA, amountB);
+        require(IERC20(tokenA).transfer(to, amountA), "TT1");
+        require(IERC20(tokenB).transfer(to, amountB), "TT2");
     }
 
-    // ✅ FUNCION 3: Intercambiar Tokens
     function swapExactTokensForTokens(
-        uint amountIn, 
-        uint amountOutMin, 
-        address[] calldata path, 
-        address to, 
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
         uint deadline
-    ) external returns (uint[] memory amounts) {
-        require(path.length == 2, "SimpleSwap: INVALID_PATH");
-        require(block.timestamp <= deadline, "SimpleSwap: EXPIRED");
+    )
+        external
+        returns (uint[] memory amounts)
+    {
+        require(path.length == 2, "PATH");
+        require(block.timestamp <= deadline, "EXP");
 
-        // Definimos tokens de entrada y salida
         address tokenIn = path[0];
         address tokenOut = path[1];
+
         Reserve storage reserve = reserves[tokenIn][tokenOut];
+        uint reserveIn = reserve.reserveA;
+        uint reserveOut = reserve.reserveB;
 
-        // Transferimos token de entrada al contrato
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        require(IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn), "TF");
 
-        // Calculamos cantidad de token de salida a entregar usando fórmula de constante producto
-        uint amountOut = getAmountOut(amountIn, reserve.reserveA, reserve.reserveB);
-        require(amountOut >= amountOutMin, "SimpleSwap: INSUFFICIENT_OUTPUT");
+        uint amountOut = getAmountOut(amountIn, reserveIn, reserveOut);
+        require(amountOut >= amountOutMin, "MINO");
 
-        // Actualizamos reservas
         reserve.reserveA += amountIn;
         reserve.reserveB -= amountOut;
 
-        // Transferimos token de salida al usuario
-        IERC20(tokenOut).transfer(to, amountOut);
+        require(IERC20(tokenOut).transfer(to, amountOut), "TT");
 
-        // Retornamos cantidades como array
-        amounts = new uint ;
+        amounts = new uint[](2);
         amounts[0] = amountIn;
         amounts[1] = amountOut;
-
-        // Emitimos evento de intercambio
-        emit Swapped(msg.sender, tokenIn, tokenOut, amountIn, amountOut);
     }
 
-    // ✅ FUNCION 4: Obtener Precio (tokenA en términos de tokenB)
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) public pure returns (uint amountOut) {
+        require(amountIn > 0, "AMT");
+        require(reserveIn > 0 && reserveOut > 0, "NORES");
+
+        uint amountInWithFee = amountIn * 997;
+        uint numerator = amountInWithFee * reserveOut;
+        uint denominator = reserveIn * 1000 + amountInWithFee;
+        amountOut = numerator / denominator;
+    }
+
     function getPrice(address tokenA, address tokenB) external view returns (uint price) {
         Reserve storage reserve = reserves[tokenA][tokenB];
-        require(reserve.reserveA > 0 && reserve.reserveB > 0, "SimpleSwap: NO_LIQUIDITY");
-
-        // Precio simple: cuántos tokenB por 1 tokenA (multiplicado por 1e18 para precisión)
+        require(reserve.reserveA > 0 && reserve.reserveB > 0, "NORES");
         price = (reserve.reserveB * 1e18) / reserve.reserveA;
-    }
-
-    // ✅ FUNCION 5: Calcular cantidad a recibir al intercambiar
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) public pure returns (uint amountOut) {
-        require(amountIn > 0, "SimpleSwap: INSUFFICIENT_INPUT");
-        require(reserveIn > 0 && reserveOut > 0, "SimpleSwap: INSUFFICIENT_LIQUIDITY");
-
-        // Fórmula de constante producto sin fee:
-        // amountOut = (amountIn * reserveOut) / (reserveIn + amountIn)
-        amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
     }
 }
