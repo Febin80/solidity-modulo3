@@ -1,195 +1,244 @@
-# Uniswap Simple DEX - Sepolia Testnet
+# Uniswap-like DEX on Sepolia Testnet
 
-Un DEX (Decentralized Exchange) simple inspirado en Uniswap desplegado en Sepolia testnet.
+A decentralized exchange (DEX) built with Solidity smart contracts and React frontend, deployed on the Sepolia testnet. This project implements core DEX functionality including token swapping, liquidity provision, and liquidity removal.
 
-## 🚀 Características
+## Features
 
-- ✅ **Swap de tokens** (Input → Output)
-- ✅ **Agregar liquidez** a pools
-- ✅ **Ver precio** en tiempo real
-- ✅ **Información del pool** (reservas, liquidez total)
-- ✅ **Validación de direcciones** (sin errores ENS)
-- ✅ **Slippage configurable**
-- ✅ **Interfaz moderna** y fácil de usar
+- **Token Swapping**: Swap between ERC-20 tokens with automatic price calculation
+- **Add Liquidity**: Provide liquidity to earn trading fees
+- **Remove Liquidity**: Withdraw your liquidity and earned fees
+- **MetaMask Integration**: Seamless wallet connection
+- **Sepolia Testnet**: Fully deployed and tested on Ethereum testnet
+- **Modern React UI**: Clean, responsive interface
 
-## 📋 Prerrequisitos
+## Live Demo
 
-- Node.js (v16 o superior)
-- npm o yarn
-- MetaMask
-- Alchemy API Key
-- ETH de Sepolia (gratis)
+- **Frontend**: [Deployed on Vercel](https://your-vercel-url.vercel.app)
+- **Network**: Sepolia Testnet
+- **Contract Addresses**: See `frontend/contracts/contract-address.json`
 
-## 🛠️ Instalación
-
-1. **Clonar el repositorio:**
-   ```bash
-   git clone <repository-url>
-   cd uniswap
-   ```
-
-2. **Instalar dependencias:**
-   ```bash
-   npm install
-   cd frontend
-   npm install
-   cd ..
-   ```
-
-## 🏗️ Configuración
-
-### 1. Configuración inicial:
-
-```bash
-./setup-sepolia.sh
-```
-
-### 2. Configurar variables de entorno:
-
-Edita el archivo `.env` creado:
-
-```bash
-# Alchemy API Key - Obtén de https://www.alchemy.com/
-ALCHEMY_API_KEY=tu_alchemy_api_key_aqui
-
-# Private Key de tu wallet - ¡NUNCA compartas esta clave!
-SEPOLIA_PRIVATE_KEY=tu_private_key_aqui
-
-# Etherscan API Key - Obtén de https://etherscan.io/
-ETHERSCAN_API_KEY=tu_etherscan_api_key_aqui
-```
-
-### 3. Desplegar contratos:
-
-```bash
-npx hardhat run scripts/deploy-sepolia.js --network sepolia
-```
-
-### 4. Agregar liquidez:
-
-```bash
-npx hardhat run scripts/add-liquidity-sepolia.js --network sepolia
-```
-
-### 5. Iniciar frontend:
-
-```bash
-cd frontend
-npm start
-```
-
-## 🎯 Uso
-
-### Conectar Wallet
-
-1. **Configurar MetaMask para Sepolia:**
-   - Network Name: `Sepolia Testnet`
-   - RPC URL: `https://eth-sepolia.g.alchemy.com/v2/TU_API_KEY`
-   - Chain ID: `11155111`
-   - Currency Symbol: `ETH`
-
-2. **Obtener ETH de Sepolia:**
-   - Ve a [Sepolia Faucet](https://sepoliafaucet.com/)
-   - Solicita ETH gratis
-
-3. **Conectar wallet:**
-   - Abre `http://localhost:3000`
-   - Haz clic en "Conectar Wallet"
-   - Confirma en MetaMask
-
-### Agregar Liquidez
-
-1. Ve a la sección "Agregar Liquidez"
-2. Ingresa las cantidades de Token A y Token B
-3. Haz clic en "Agregar Liquidez"
-4. Confirma la transacción en MetaMask
-
-### Hacer Swap
-
-1. Ve a la sección "Swap de Tokens"
-2. Las direcciones de los tokens ya están pre-cargadas
-3. Ingresa la cantidad que quieres cambiar
-4. Haz clic en "Calcular Cantidad de Salida"
-5. Revisa el precio y la cantidad a recibir
-6. Haz clic en "Ejecutar Swap"
-7. Confirma la transacción en MetaMask
-
-## 📊 Contratos Desplegados
-
-Los contratos se desplegarán automáticamente en Sepolia y las direcciones se guardarán en:
-- `frontend/src/contracts/contract-address.json`
-- `frontend/src/config/tokens.ts`
-
-## 🔧 Scripts Disponibles
-
-- `scripts/deploy-sepolia.js` - Despliega en Sepolia
-- `scripts/add-liquidity-sepolia.js` - Agrega liquidez
-- `scripts/verify-setup.js` - Verifica la configuración
-- `setup-sepolia.sh` - Configuración inicial
-
-## 🐛 Solución de Problemas
-
-### Error "Contrato de token no encontrado en la red"
-
-**Causa:** No estás conectado a Sepolia o los contratos no están desplegados.
-
-**Solución:**
-1. Verifica que estés en Sepolia (Chain ID: 11155111)
-2. Ejecuta el script de despliegue: `npx hardhat run scripts/deploy-sepolia.js --network sepolia`
-3. Refresca la página
-
-### Error "could not decode result data"
-
-**Causa:** Problemas con el ABI o contratos no desplegados.
-
-**Solución:**
-1. Verifica que los contratos estén desplegados
-2. Asegúrate de estar en Sepolia
-3. Refresca la página
-
-### Error "insufficient funds"
-
-**Solución:**
-1. Obtén ETH de [Sepolia Faucet](https://sepoliafaucet.com/)
-2. Verifica que tengas suficientes tokens minted
-
-## 📁 Estructura del Proyecto
+## Project Structure
 
 ```
 uniswap/
-├── contracts/
-│   ├── simple.sol          # Contrato principal SimpleSwap
-│   └── token.sol           # Contrato de token ERC20
-├── frontend/
+├── contracts/           # Solidity smart contracts
+│   ├── Lock.sol
+│   ├── simple.sol       # Main DEX contract
+│   └── token.sol        # ERC-20 token contract
+├── frontend/            # React application
 │   ├── src/
-│   │   ├── components/
-│   │   │   └── TokenSwap.tsx  # Componente principal
-│   │   ├── config/
-│   │   │   └── tokens.ts      # Configuración de tokens
-│   │   └── contracts/
-│   │       └── contract-address.json
+│   │   ├── components/  # React components
+│   │   ├── contracts/   # Contract ABIs and addresses
+│   │   ├── AddLiquidity.tsx
+│   │   ├── TokenSwap.tsx
+│   │   └── RemoveLiquidity.tsx
 │   └── package.json
-├── scripts/
-│   ├── deploy-sepolia.js
-│   ├── add-liquidity-sepolia.js
-│   └── verify-setup.js
-├── setup-sepolia.sh
-└── hardhat.config.js
+├── scripts/             # Deployment and setup scripts
+├── test/               # Contract tests
+└── hardhat.config.js   # Hardhat configuration
 ```
 
-## 🔗 Enlaces Útiles
+## Smart Contracts
 
-- [Sepolia Faucet](https://sepoliafaucet.com/)
-- [Alchemy](https://www.alchemy.com/)
-- [Etherscan Sepolia](https://sepolia.etherscan.io/)
-- [MetaMask](https://metamask.io/)
+### SimpleSwap.sol
+The main DEX contract that handles:
+- Token swapping with automatic price calculation
+- Liquidity pool management
+- Fee collection and distribution
 
-## 📄 Licencia
+### Token.sol
+Standard ERC-20 token contract used for testing the DEX functionality.
 
-Este proyecto está bajo la Licencia MIT.
+## Setup Instructions
 
-## 🙏 Agradecimientos
+### Prerequisites
 
-- Inspirado en Uniswap V2
-- Construido con Hardhat y React
-- Usando ethers.js para interacción con blockchain
+- Node.js (v16 or higher)
+- npm or yarn
+- MetaMask wallet
+- Sepolia testnet ETH (get from [Sepolia Faucet](https://sepoliafaucet.com/))
+
+### 1. Environment Setup
+
+Create a `.env` file in the root directory:
+
+```bash
+ALCHEMY_API_KEY=your_alchemy_api_key_here
+PRIVATE_KEY=your_wallet_private_key_here
+```
+
+**Important**: Make sure to separate the Alchemy API key and private key correctly. The private key should be the one from your MetaMask wallet (without the "0x" prefix).
+
+### 2. Install Dependencies
+
+```bash
+# Install root dependencies
+npm install
+
+# Install frontend dependencies
+cd frontend
+npm install
+cd ..
+```
+
+### 3. Deploy Contracts to Sepolia
+
+```bash
+# Deploy all contracts
+npx hardhat run scripts/deploy-all.js --network sepolia
+```
+
+This will deploy:
+- Token contracts (TokenA and TokenB)
+- SimpleSwap DEX contract
+- Update contract addresses in `frontend/contracts/contract-address.json`
+
+### 4. Add Initial Liquidity
+
+```bash
+# Add initial liquidity to the pool
+npx hardhat run scripts/add-initial-liquidity.js --network sepolia
+```
+
+This creates the initial liquidity pool with both tokens.
+
+### 5. Build and Deploy Frontend
+
+```bash
+# Build the React app
+cd frontend
+npm run build
+
+# Deploy to Vercel (if using Vercel CLI)
+vercel --prod
+```
+
+## Usage Guide
+
+### Connecting Wallet
+
+1. Open the application in your browser
+2. Click "Connect Wallet" button
+3. Approve the MetaMask connection
+4. Make sure you're connected to Sepolia testnet
+
+### Token Swapping
+
+1. **Navigate to Swap**: Click on the "Swap" tab
+2. **Select Tokens**: Choose the token you want to swap from and to
+3. **Enter Amount**: Input the amount you want to swap
+4. **Approve Tokens**: If it's your first time swapping a token, approve the DEX contract to spend your tokens
+5. **Execute Swap**: Click "Swap" and confirm the transaction in MetaMask
+
+**Note**: The first time you swap a token, you'll need to approve the DEX contract to spend your tokens. This is a one-time approval per token.
+
+### Adding Liquidity
+
+1. **Navigate to Add Liquidity**: Click on the "Add Liquidity" tab
+2. **Select Tokens**: Choose the two tokens you want to provide liquidity for
+3. **Enter Amounts**: Input the amounts for both tokens
+4. **Approve Tokens**: Approve both tokens for the DEX contract
+5. **Add Liquidity**: Click "Add Liquidity" and confirm the transaction
+
+**Benefits**: By providing liquidity, you earn a portion of the trading fees proportional to your share of the pool.
+
+### Removing Liquidity
+
+1. **Navigate to Remove Liquidity**: Click on the "Remove Liquidity" tab
+2. **Select Pool**: Choose the liquidity pool you want to withdraw from
+3. **Enter LP Amount**: Input the amount of liquidity tokens to burn
+4. **Remove Liquidity**: Click "Remove Liquidity" and confirm the transaction
+
+**Note**: You'll receive back both tokens plus any accumulated trading fees.
+
+## Technical Details
+
+### Contract Functions
+
+#### SimpleSwap.sol
+- `swapTokensForExactTokens()`: Swap tokens with exact output amount
+- `addLiquidity()`: Add liquidity to the pool
+- `removeLiquidity()`: Remove liquidity from the pool
+- `getReserves()`: Get current pool reserves
+- `getAmountOut()`: Calculate output amount for a swap
+
+### Frontend Integration
+
+The React frontend uses:
+- **ethers.js**: For blockchain interaction
+- **MetaMask**: For wallet connection
+- **BigInt**: For handling large numbers and allowances
+- **Error Handling**: Comprehensive error handling for all operations
+
+### Key Features Implemented
+
+1. **Allowance Management**: Proper handling of token approvals with BigInt support
+2. **Price Calculation**: Automatic price calculation based on reserves
+3. **Liquidity Pool Management**: Add and remove liquidity functionality
+4. **Error Handling**: User-friendly error messages and transaction status
+5. **Responsive Design**: Works on desktop and mobile devices
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Contract not found on network"**
+   - Ensure you're connected to Sepolia testnet
+   - Check that contract addresses are updated in `frontend/contracts/contract-address.json`
+
+2. **"Contract.getReserves is not a function"**
+   - Verify the contract ABI is correctly imported
+   - Check that the contract is properly deployed
+
+3. **Allowance errors**
+   - Make sure to approve tokens before swapping
+   - Check that allowance amounts are sufficient
+
+4. **Transaction failures**
+   - Ensure you have enough Sepolia ETH for gas fees
+   - Check that you have sufficient token balances
+
+### Environment Variables
+
+Make sure your `.env` file is properly configured:
+```bash
+ALCHEMY_API_KEY=your_alchemy_api_key_here
+PRIVATE_KEY=your_wallet_private_key_here
+```
+
+**Note**: Never commit your `.env` file to version control.
+
+## Testing
+
+Run the test suite:
+
+```bash
+npx hardhat test
+```
+
+## Deployment Verification
+
+To verify your contracts on Etherscan:
+
+```bash
+npx hardhat verify --network sepolia CONTRACT_ADDRESS
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Acknowledgments
+
+- Built with Hardhat and React
+- Deployed on Sepolia testnet
+- Frontend hosted on Vercel
+- Inspired by Uniswap protocol
