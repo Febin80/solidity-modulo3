@@ -123,7 +123,13 @@ contract SimpleSwap {
 
         require(IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn), "TF");
 
-        uint amountOut = getAmountOut(amountIn, reserveIn, reserveOut);
+        // Lógica inline de getAmountOut
+        require(amountIn > 0, "AMT");
+        require(reserveIn > 0 && reserveOut > 0, "NORES");
+        uint amountInWithFee = amountIn * 997;
+        uint numerator = amountInWithFee * reserveOut;
+        uint denominator = reserveIn * 1000 + amountInWithFee;
+        uint amountOut = numerator / denominator;
         require(amountOut >= amountOutMin, "MINO");
 
         reserve.reserveA += amountIn;
@@ -136,19 +142,16 @@ contract SimpleSwap {
         amounts[1] = amountOut;
     }
 
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) public pure returns (uint amountOut) {
-        require(amountIn > 0, "AMT");
-        require(reserveIn > 0 && reserveOut > 0, "NORES");
 
-        uint amountInWithFee = amountIn * 997;
-        uint numerator = amountInWithFee * reserveOut;
-        uint denominator = reserveIn * 1000 + amountInWithFee;
-        amountOut = numerator / denominator;
-    }
 
     function getPrice(address tokenA, address tokenB) external view returns (uint price) {
         Reserve storage reserve = reserves[tokenA][tokenB];
         require(reserve.reserveA > 0 && reserve.reserveB > 0, "NORES");
         price = (reserve.reserveB * 1e18) / reserve.reserveA;
+    }
+
+    function getReserves(address tokenA, address tokenB) external view returns (uint reserveA, uint reserveB) {
+        Reserve storage reserve = reserves[tokenA][tokenB];
+        return (reserve.reserveA, reserve.reserveB);
     }
 }
