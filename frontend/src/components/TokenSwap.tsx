@@ -3,6 +3,15 @@ import { ethers } from "ethers";
 import contractAddress from "../contracts/contract-address.json";
 import SimpleSwapABI from "../contracts/SimpleSwap.json";
 import { EXAMPLE_TOKENS } from "../config/tokens";
+import { 
+  NETWORK_CONFIG, 
+  ERROR_MESSAGES, 
+  SUCCESS_MESSAGES, 
+  UI_LABELS, 
+  PLACEHOLDERS, 
+  VALIDATION,
+  STYLES 
+} from "../config/constants";
 
 const ERC20ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
@@ -107,8 +116,8 @@ function TokenSwap() {
           const network = await provider.getNetwork();
           console.log("Red conectada:", network.name, "Chain ID:", network.chainId);
           
-          if (network.chainId !== BigInt(11155111)) {
-            setStatus("⚠️ Conecta a Sepolia (Chain ID: 11155111)");
+          if (network.chainId !== BigInt(NETWORK_CONFIG.SEPOLIA_CHAIN_ID)) {
+            setStatus(`⚠️ Conecta a ${NETWORK_CONFIG.SEPOLIA_NAME} (Chain ID: ${NETWORK_CONFIG.SEPOLIA_CHAIN_ID})`);
           } else {
             setStatus("");
           }
@@ -582,6 +591,44 @@ function TokenSwap() {
     setAmountOut("");
   }
 
+  // Nueva función para calcular el output real usando getAmountOut
+  async function calcularOutputReal(amountInStr: string, tokenAAddress: string, tokenBAddress: string) {
+    try {
+      // @ts-ignore
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const contract = new ethers.Contract(contractAddress.SimpleSwap, SimpleSwapABI.abi, provider);
+      // 1. Obtener reservas
+      const [reserveA, reserveB] = await contract.getReserves(tokenAAddress, tokenBAddress);
+      // 2. Parsear amountIn a wei
+      const amountIn = ethers.parseUnits(amountInStr, 18);
+      // 3. Llamar a getAmountOut
+      const amountOut = await contract.getAmountOut(amountIn, reserveA, reserveB);
+      // 4. Formatear a decimal para mostrar al usuario
+      return ethers.formatUnits(amountOut, 18);
+    } catch (e) {
+      return "0";
+    }
+  }
+
+  // Actualizar amountOut automáticamente cuando cambian los inputs
+  useEffect(() => {
+    async function updateAmountOut() {
+      if (
+        tokenA.address && tokenB.address &&
+        amountIn !== "" &&
+        ethers.isAddress(tokenA.address) &&
+        ethers.isAddress(tokenB.address)
+      ) {
+        const out = await calcularOutputReal(amountIn, tokenA.address, tokenB.address);
+        setAmountOut(out);
+      } else {
+        setAmountOut("");
+      }
+    }
+    updateAmountOut();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amountIn, tokenA.address, tokenB.address]);
+
   return (
     <div className="token-swap-container" style={{
       maxWidth: 800,
@@ -606,7 +653,7 @@ function TokenSwap() {
       }}>
         {walletConnected ? (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#155724', fontWeight: 'bold' }}>✅ Wallet Conectada</div>
+            <div style={{ color: STYLES.COLORS.SUCCESS, fontWeight: 'bold' }}>{SUCCESS_MESSAGES.WALLET_CONNECTED}</div>
             <div style={{ fontSize: 12, color: '#666', wordBreak: 'break-all' }}>
               {walletAddress}
             </div>
@@ -615,7 +662,7 @@ function TokenSwap() {
               style={{
                 marginTop: 8,
                 padding: '4px 8px',
-                backgroundColor: '#17a2b8',
+                backgroundColor: STYLES.COLORS.INFO,
                 color: 'white',
                 border: 'none',
                 borderRadius: 4,
@@ -623,24 +670,24 @@ function TokenSwap() {
                 fontSize: 12
               }}
             >
-              Cambiar a Sepolia
+              {UI_LABELS.SWITCH_TO_SEPOLIA}
             </button>
           </div>
         ) : (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#721c24', marginBottom: 8 }}>⚠️ Conecta tu wallet para usar la aplicación</div>
+            <div style={{ color: STYLES.COLORS.DANGER, marginBottom: 8 }}>{ERROR_MESSAGES.WALLET_NOT_CONNECTED}</div>
             <button
               onClick={connectWallet}
               style={{
                 padding: '8px 16px',
-                backgroundColor: '#007bff',
+                backgroundColor: STYLES.COLORS.PRIMARY,
                 color: 'white',
                 border: 'none',
                 borderRadius: 4,
                 cursor: 'pointer'
               }}
             >
-              Conectar Wallet
+              {UI_LABELS.CONNECT_WALLET}
             </button>
           </div>
         )}
