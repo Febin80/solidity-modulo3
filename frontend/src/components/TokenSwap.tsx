@@ -99,7 +99,7 @@ function TokenSwap() {
       loadTokenInfo(tokenB.address, setTokenB);
       loadPoolInfo();
     }
-  }, [tokenA.address, tokenB.address]);
+  }, [loadPoolInfo, tokenA.address, tokenB.address]);
 
   async function checkWalletConnection() {
     try {
@@ -324,25 +324,16 @@ function TokenSwap() {
         return;
       }
 
-      // Get price from the contract
+      // Use getAmountOut instead of getPrice for accurate calculation
       try {
-        const price = await contract.getPrice(tokenA.address, tokenB.address);
-
-        if (!price || price.toString() === "0") {
-          setAmountOut("");
-          setStatus("Sin liquidez para este par de tokens");
-          return;
-        }
-
-        // Calculate amountOut = amountIn * price / 1e18
-        const amountOutWei = (amountInWei * price) / ethers.parseUnits("1", 18);
+        const amountOutWei = await contract.getAmountOut(amountInWei, reserveAWei, reserveBWei);
         const amountOutFormatted = ethers.formatUnits(amountOutWei, 18);
 
         setAmountOut(amountOutFormatted);
         setStatus("");
       } catch (e) {
         setAmountOut("");
-        setStatus("Error al calcular precio. Verifica que haya liquidez en el pool.");
+        setStatus("Error al calcular cantidad de salida. Verifica que haya liquidez en el pool.");
       }
     } catch (e: any) {
       setStatus(e?.reason || e?.message || "Error al calcular cantidad de salida");
