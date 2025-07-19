@@ -3,14 +3,13 @@ import { ethers } from "ethers";
 import contractAddress from "../contracts/contract-address.json";
 import SimpleSwapABI from "../contracts/SimpleSwap.json";
 import { EXAMPLE_TOKENS } from "../config/tokens";
-import { 
-  NETWORK_CONFIG, 
-  ERROR_MESSAGES, 
-  SUCCESS_MESSAGES, 
-  UI_LABELS, 
-  PLACEHOLDERS, 
-  VALIDATION,
-  STYLES 
+import {
+  NETWORK_CONFIG,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  UI_LABELS,
+  PLACEHOLDERS,
+  STYLES
 } from "../config/constants";
 
 const ERC20ABI = [
@@ -46,7 +45,7 @@ function TokenSwap() {
     name: EXAMPLE_TOKENS.TOKEN_A.name,
     balance: "0"
   });
-  
+
   const [tokenB, setTokenB] = useState<TokenInfo>({
     address: EXAMPLE_TOKENS.TOKEN_B.address !== "0x..." ? EXAMPLE_TOKENS.TOKEN_B.address : "",
     symbol: EXAMPLE_TOKENS.TOKEN_B.symbol,
@@ -66,27 +65,27 @@ function TokenSwap() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
 
-  const canSwap = walletConnected && 
-                 amountIn !== "" && 
-                 tokenA.address && 
-                 tokenB.address && 
-                 ethers.isAddress(tokenA.address) && 
-                 ethers.isAddress(tokenB.address);
-                 
-  const canAddLiquidity = walletConnected && 
-                         liquidityAmountA !== "" && 
-                         liquidityAmountB !== "" && 
-                         tokenA.address && 
-                         tokenB.address &&
-                         ethers.isAddress(tokenA.address) && 
-                         ethers.isAddress(tokenB.address);
+  const canSwap = walletConnected &&
+    amountIn !== "" &&
+    tokenA.address &&
+    tokenB.address &&
+    ethers.isAddress(tokenA.address) &&
+    ethers.isAddress(tokenB.address);
 
-  const canRemoveLiquidity = walletConnected && 
-                            removeLiquidityAmount !== "" && 
-                            tokenA.address && 
-                            tokenB.address &&
-                            ethers.isAddress(tokenA.address) && 
-                            ethers.isAddress(tokenB.address);
+  const canAddLiquidity = walletConnected &&
+    liquidityAmountA !== "" &&
+    liquidityAmountB !== "" &&
+    tokenA.address &&
+    tokenB.address &&
+    ethers.isAddress(tokenA.address) &&
+    ethers.isAddress(tokenB.address);
+
+  const canRemoveLiquidity = walletConnected &&
+    removeLiquidityAmount !== "" &&
+    tokenA.address &&
+    tokenB.address &&
+    ethers.isAddress(tokenA.address) &&
+    ethers.isAddress(tokenB.address);
 
   // Check wallet connection on mount
   useEffect(() => {
@@ -111,11 +110,11 @@ function TokenSwap() {
         if (accounts.length > 0) {
           setWalletConnected(true);
           setWalletAddress(accounts[0].address);
-          
+
           // Verificar que estamos en la red correcta
           const network = await provider.getNetwork();
           console.log("Red conectada:", network.name, "Chain ID:", network.chainId);
-          
+
           if (network.chainId !== BigInt(NETWORK_CONFIG.SEPOLIA_CHAIN_ID)) {
             setStatus(`⚠️ Conecta a ${NETWORK_CONFIG.SEPOLIA_NAME} (Chain ID: ${NETWORK_CONFIG.SEPOLIA_CHAIN_ID})`);
           } else {
@@ -133,7 +132,7 @@ function TokenSwap() {
       // @ts-ignore
       if (typeof window.ethereum !== 'undefined') {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
-        
+
         // Intentar cambiar a Sepolia
         try {
           await (window as any).ethereum.request({
@@ -167,7 +166,7 @@ function TokenSwap() {
         if (accounts.length > 0) {
           setWalletConnected(true);
           setWalletAddress(accounts[0]);
-          
+
           // Verificar red después de conectar
           const network = await provider.getNetwork();
           if (network.chainId === BigInt(11155111)) {
@@ -175,7 +174,7 @@ function TokenSwap() {
           } else {
             setStatus("⚠️ Conecta a Sepolia (Chain ID: 11155111)");
           }
-          
+
           // Refresh token info after connecting
           if (tokenA.address) loadTokenInfo(tokenA.address, setTokenA);
           if (tokenB.address) loadTokenInfo(tokenB.address, setTokenB);
@@ -199,7 +198,7 @@ function TokenSwap() {
       // @ts-ignore
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const tokenContract = new ethers.Contract(address, ERC20ABI, provider);
-      
+
       const [symbol, name] = await Promise.all([
         tokenContract.symbol(),
         tokenContract.name()
@@ -254,7 +253,7 @@ function TokenSwap() {
       const [reserveAWei, reserveBWei] = await contract.getReserves(tokenA.address, tokenB.address);
       const reserveA = ethers.formatUnits(reserveAWei, 18);
       const reserveB = ethers.formatUnits(reserveBWei, 18);
-      
+
       // Check if there's liquidity
       if (reserveAWei === BigInt(0) && reserveBWei === BigInt(0)) {
         setPoolInfo({
@@ -308,7 +307,7 @@ function TokenSwap() {
 
     setIsLoading(true);
     setStatus("Calculando cantidad de salida...");
-    
+
     try {
       // @ts-ignore
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -318,7 +317,7 @@ function TokenSwap() {
 
       // Check reserves first
       const [reserveAWei, reserveBWei] = await contract.getReserves(tokenA.address, tokenB.address);
-      
+
       if (reserveAWei === BigInt(0) || reserveBWei === BigInt(0)) {
         setAmountOut("");
         setStatus("Sin liquidez para este par de tokens. Agrega liquidez primero.");
@@ -328,7 +327,7 @@ function TokenSwap() {
       // Get price from the contract
       try {
         const price = await contract.getPrice(tokenA.address, tokenB.address);
-        
+
         if (!price || price.toString() === "0") {
           setAmountOut("");
           setStatus("Sin liquidez para este par de tokens");
@@ -338,7 +337,7 @@ function TokenSwap() {
         // Calculate amountOut = amountIn * price / 1e18
         const amountOutWei = (amountInWei * price) / ethers.parseUnits("1", 18);
         const amountOutFormatted = ethers.formatUnits(amountOutWei, 18);
-        
+
         setAmountOut(amountOutFormatted);
         setStatus("");
       } catch (e) {
@@ -359,15 +358,15 @@ function TokenSwap() {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const erc20 = new ethers.Contract(tokenAddress, ERC20ABI, signer);
-      
+
       const userAddress = await signer.getAddress();
-      
+
       // Verificar que el contrato existe
       const code = await provider.getCode(tokenAddress);
       if (code === "0x") {
         throw new Error("Contrato de token no encontrado en la red");
       }
-      
+
       // Verificar allowance con manejo de errores específico
       let allowance;
       try {
@@ -384,7 +383,7 @@ function TokenSwap() {
         }
       } catch (allowanceError: any) {
         console.error("Error al verificar allowance:", allowanceError);
-        
+
         // Si el error es de decodificación o cualquier otro error, intentar aprobar directamente
         console.log("Error al verificar allowance, aprobando directamente...");
         const tx = await erc20.approve(contractAddress.SimpleSwap, amount);
@@ -392,7 +391,7 @@ function TokenSwap() {
         console.log("Aprobación completada");
         return;
       }
-      
+
       if (allowance < amount) {
         console.log(`Aprobando ${ethers.formatUnits(amount, 18)} tokens...`);
         const tx = await erc20.approve(contractAddress.SimpleSwap, amount);
@@ -415,7 +414,7 @@ function TokenSwap() {
 
     setIsLoading(true);
     setStatus("Ejecutando swap...");
-    
+
     try {
       // @ts-ignore
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -424,15 +423,15 @@ function TokenSwap() {
 
       const amountInWei = ethers.parseUnits(amountIn, 18);
       const amountOutWei = ethers.parseUnits(amountOut, 18);
-      
+
       // Calculate minimum amount out with slippage
       const slippageMultiplier = (100 - slippage) / 100;
       const slippageBigInt = BigInt(Math.floor(slippageMultiplier * 1000));
       const amountOutMin = (amountOutWei * slippageBigInt) / BigInt(1000);
-      
+
       const path = [tokenA.address, tokenB.address];
       const to = await signer.getAddress();
-      
+
       // Validate addresses are not ENS names
       if (!ethers.isAddress(tokenA.address) || !ethers.isAddress(tokenB.address)) {
         throw new Error("Direcciones de tokens inválidas");
@@ -450,19 +449,19 @@ function TokenSwap() {
         to,
         deadline
       );
-      
+
       await tx.wait();
       setStatus("¡Swap completado exitosamente!");
-      
+
       // Clear inputs
       setAmountIn("");
       setAmountOut("");
-      
+
       // Refresh balances and pool info
       if (tokenA.address) loadTokenInfo(tokenA.address, setTokenA);
       if (tokenB.address) loadTokenInfo(tokenB.address, setTokenB);
       await loadPoolInfo();
-      
+
     } catch (e: any) {
       setStatus(e?.reason || e?.message || "Error al ejecutar el swap");
     } finally {
@@ -478,7 +477,7 @@ function TokenSwap() {
 
     setIsLoading(true);
     setStatus("Agregando liquidez...");
-    
+
     try {
       // @ts-ignore
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -510,19 +509,19 @@ function TokenSwap() {
         to,
         deadline
       );
-      
+
       await tx.wait();
       setStatus("¡Liquidez agregada exitosamente!");
-      
+
       // Clear inputs
       setLiquidityAmountA("");
       setLiquidityAmountB("");
-      
+
       // Refresh balances and pool info
       if (tokenA.address) loadTokenInfo(tokenA.address, setTokenA);
       if (tokenB.address) loadTokenInfo(tokenB.address, setTokenB);
       await loadPoolInfo();
-      
+
     } catch (e: any) {
       setStatus(e?.reason || e?.message || "Error al agregar liquidez");
     } finally {
@@ -538,7 +537,7 @@ function TokenSwap() {
 
     setIsLoading(true);
     setStatus("Removiendo liquidez...");
-    
+
     try {
       // @ts-ignore
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -564,18 +563,18 @@ function TokenSwap() {
         to,
         deadline
       );
-      
+
       await tx.wait();
       setStatus("¡Liquidez removida exitosamente!");
-      
+
       // Clear inputs
       setRemoveLiquidityAmount("");
-      
+
       // Refresh balances and pool info
       if (tokenA.address) loadTokenInfo(tokenA.address, setTokenA);
       if (tokenB.address) loadTokenInfo(tokenB.address, setTokenB);
       await loadPoolInfo();
-      
+
     } catch (e: any) {
       setStatus(e?.reason || e?.message || "Error al remover liquidez");
     } finally {
@@ -644,9 +643,9 @@ function TokenSwap() {
       </h2>
 
       {/* Wallet Connection */}
-      <div style={{ 
-        marginBottom: 24, 
-        padding: 16, 
+      <div style={{
+        marginBottom: 24,
+        padding: 16,
         backgroundColor: walletConnected ? '#d4edda' : '#f8d7da',
         borderRadius: 8,
         border: `1px solid ${walletConnected ? '#c3e6cb' : '#f5c6cb'}`
@@ -736,7 +735,7 @@ function TokenSwap() {
         {/* Swap Section */}
         <div>
           <h3 style={{ marginBottom: 16, color: '#333' }}>Swap de Tokens</h3>
-          
+
           {/* Token A Input */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
@@ -931,7 +930,7 @@ function TokenSwap() {
         {/* Liquidity Section */}
         <div>
           <h3 style={{ marginBottom: 16, color: '#333' }}>Agregar Liquidez</h3>
-          
+
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
               Cantidad {tokenA.symbol}
@@ -989,7 +988,7 @@ function TokenSwap() {
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #ddd' }} />
 
           <h3 style={{ marginBottom: 16, color: '#333' }}>Remover Liquidez</h3>
-          
+
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
               Cantidad de Liquidez a Remover
