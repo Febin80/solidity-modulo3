@@ -1,5 +1,4 @@
 [build]
-  base = "frontend"
   command = "npm run build"
   publish = "build"
 
@@ -10,3 +9,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  NPM_VERSION = "8"
