@@ -1,4 +1,4 @@
-# Uniswap-like DEX on Sepolia Testnet
+# SimpleSwap DEX on Sepolia Testnet
 
 A decentralized exchange (DEX) built with Solidity smart contracts and React frontend, deployed on the Sepolia testnet. This project implements core DEX functionality including token swapping, liquidity provision, and liquidity removal.
 
@@ -15,26 +15,28 @@ A decentralized exchange (DEX) built with Solidity smart contracts and React fro
 
 - **Frontend**: [Deployed on Vercel](https://your-vercel-url.vercel.app)
 - **Network**: Sepolia Testnet
-- **Contract Addresses**: See `frontend/contracts/contract-address.json`
+- **Contract Addresses**: See frontend configuration files
 
 ## Project Structure
 
 ```
-uniswap/
+simpleswap-dex/
 ├── contracts/           # Solidity smart contracts
-│   ├── Lock.sol
-│   ├── simple.sol       # Main DEX contract
-│   └── token.sol        # ERC-20 token contract
+│   ├── Constants.sol    # Constants and error messages
+│   ├── simple.sol       # Main DEX contract (SimpleSwap)
+│   └── token.sol        # ERC-20 token contract (MyToken)
 ├── frontend/            # React application
 │   ├── src/
 │   │   ├── components/  # React components
-│   │   ├── contracts/   # Contract ABIs and addresses
-│   │   ├── AddLiquidity.tsx
-│   │   ├── TokenSwap.tsx
-│   │   └── RemoveLiquidity.tsx
+│   │   │   └── TokenSwap.tsx
+│   │   └── ...
 │   └── package.json
-├── scripts/             # Deployment and setup scripts
 ├── test/               # Contract tests
+│   ├── SimpleSwap.js
+│   └── SimpleSwap.test.js
+├── scripts/            # Deployment scripts
+├── artifacts/          # Compiled artifacts
+├── cache/              # Hardhat cache
 └── hardhat.config.js   # Hardhat configuration
 ```
 
@@ -45,9 +47,13 @@ The main DEX contract that handles:
 - Token swapping with automatic price calculation
 - Liquidity pool management
 - Fee collection and distribution
+- Main functions: `addLiquidity()`, `removeLiquidity()`, `swapExactTokensForTokens()`
 
-### Token.sol
-Standard ERC-20 token contract used for testing the DEX functionality.
+### MyToken.sol
+Standard ERC-20 token contract used for testing DEX functionality. Includes `mint()` function for creating test tokens.
+
+### Constants.sol
+Library containing constants and optimized error messages for the SimpleSwap contract.
 
 ## Setup Instructions
 
@@ -64,15 +70,16 @@ Create a `.env` file in the root directory:
 
 ```bash
 ALCHEMY_API_KEY=your_alchemy_api_key_here
-PRIVATE_KEY=your_wallet_private_key_here
+SEPOLIA_PRIVATE_KEY=your_wallet_private_key_here
+ETHERSCAN_API_KEY=your_etherscan_api_key_here
 ```
 
-**Important**: Make sure to separate the Alchemy API key and private key correctly. The private key should be the one from your MetaMask wallet (without the "0x" prefix).
+**Important**: Make sure to configure the Alchemy API key and private key correctly. The private key should be from your MetaMask wallet (without the "0x" prefix).
 
 ### 2. Install Dependencies
 
 ```bash
-# Install root dependencies
+# Install root project dependencies
 npm install
 
 # Install frontend dependencies
@@ -81,28 +88,32 @@ npm install
 cd ..
 ```
 
-### 3. Deploy Contracts to Sepolia
+### 3. Compile Contracts
 
 ```bash
-# Deploy all contracts
-npx hardhat run scripts/deploy-all.js --network sepolia
+# Compile all contracts
+npx hardhat compile
+```
+
+### 4. Run Tests
+
+```bash
+# Run the test suite
+npx hardhat test
+```
+
+### 5. Deploy Contracts to Sepolia
+
+```bash
+# Deploy contracts (create your own deployment script)
+npx hardhat run scripts/deploy.js --network sepolia
 ```
 
 This will deploy:
-- Token contracts (TokenA and TokenB)
+- MyToken contracts (for testing)
 - SimpleSwap DEX contract
-- Update contract addresses in `frontend/contracts/contract-address.json`
 
-### 4. Add Initial Liquidity
-
-```bash
-# Add initial liquidity to the pool
-npx hardhat run scripts/add-initial-liquidity.js --network sepolia
-```
-
-This creates the initial liquidity pool with both tokens.
-
-### 5. Build and Deploy Frontend
+### 6. Build and Deploy Frontend
 
 ```bash
 # Build the React app
@@ -156,11 +167,14 @@ vercel --prod
 ### Contract Functions
 
 #### SimpleSwap.sol
-- `swapTokensForExactTokens()`: Swap tokens with exact output amount
+- `swapExactTokensForTokens()`: Swap exact input tokens for output tokens
 - `addLiquidity()`: Add liquidity to the pool
 - `removeLiquidity()`: Remove liquidity from the pool
 - `getReserves()`: Get current pool reserves
 - `getAmountOut()`: Calculate output amount for a swap
+- `getPrice()`: Get the price ratio between two tokens
+- `getLiquidity()`: Get user's liquidity balance
+- `hasLiquidity()`: Check if liquidity exists for a token pair
 
 ### Frontend Integration
 

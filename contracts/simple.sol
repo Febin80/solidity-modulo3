@@ -5,8 +5,8 @@ import "./Constants.sol";
 
 /**
  * @title SimpleSwap
- * @notice A simple Uniswap-like DEX for swapping and providing liquidity between two ERC20 tokens
- * @dev Optimized to minimize state variable accesses and documented with NatSpec
+ * @notice Optimized Uniswap-like DEX with minimal state access
+ * @dev Gas-optimized with short error strings
  */
 interface IERC20 {
     function totalSupply() external view returns (uint);
@@ -57,22 +57,23 @@ contract SimpleSwap {
     {
         require(block.timestamp <= deadline, Constants.EXPIRED);
 
+        // Cache storage reads to minimize gas
         Reserve storage reserve = reserves[tokenA][tokenB];
-        uint reserveA = reserve.reserveA;
-        uint reserveB = reserve.reserveB;
-        uint userLiquidity = liquidity[to];
+        uint _reserveA = reserve.reserveA;
+        uint _reserveB = reserve.reserveB;
+        uint _userLiquidity = liquidity[to];
 
-        if (reserveA == 0 && reserveB == 0) {
+        if (_reserveA == 0 && _reserveB == 0) {
             amountA = amountADesired;
             amountB = amountBDesired;
         } else {
-            uint amountBOptimal = (amountADesired * reserveB) / reserveA;
+            uint amountBOptimal = (amountADesired * _reserveB) / _reserveA;
             if (amountBOptimal <= amountBDesired) {
                 require(amountBOptimal >= amountBMin, Constants.INSUFFICIENT_AMOUNT_B);
                 amountA = amountADesired;
                 amountB = amountBOptimal;
             } else {
-                uint amountAOptimal = (amountBDesired * reserveA) / reserveB;
+                uint amountAOptimal = (amountBDesired * _reserveA) / _reserveB;
                 require(amountAOptimal >= amountAMin, Constants.INSUFFICIENT_AMOUNT_A);
                 amountA = amountAOptimal;
                 amountB = amountBDesired;
@@ -82,9 +83,10 @@ contract SimpleSwap {
         require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), Constants.TRANSFER_FAILED_1);
         require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), Constants.TRANSFER_FAILED_2);
 
-        reserve.reserveA = reserveA + amountA;
-        reserve.reserveB = reserveB + amountB;
-        liquidity[to] = userLiquidity + (amountA + amountB);
+        // Update storage once
+        reserve.reserveA = _reserveA + amountA;
+        reserve.reserveB = _reserveB + amountB;
+        liquidity[to] = _userLiquidity + (amountA + amountB);
 
         liquidityMinted = amountA + amountB;
     }
@@ -114,23 +116,26 @@ contract SimpleSwap {
         returns (uint amountA, uint amountB)
     {
         require(block.timestamp <= deadline, Constants.EXPIRED);
-        uint userLiquidity = liquidity[msg.sender];
-        require(userLiquidity >= liquidityAmount, Constants.INSUFFICIENT_LIQUIDITY);
+        
+        // Cache storage reads
+        uint _userLiquidity = liquidity[msg.sender];
+        require(_userLiquidity >= liquidityAmount, Constants.INSUFFICIENT_LIQUIDITY);
 
         Reserve storage reserve = reserves[tokenA][tokenB];
-        uint reserveA = reserve.reserveA;
-        uint reserveB = reserve.reserveB;
-        uint totalLiquidity = reserveA + reserveB;
+        uint _reserveA = reserve.reserveA;
+        uint _reserveB = reserve.reserveB;
+        uint totalLiquidity = _reserveA + _reserveB;
 
-        amountA = (liquidityAmount * reserveA) / totalLiquidity;
-        amountB = (liquidityAmount * reserveB) / totalLiquidity;
+        amountA = (liquidityAmount * _reserveA) / totalLiquidity;
+        amountB = (liquidityAmount * _reserveB) / totalLiquidity;
 
         require(amountA >= amountAMin, Constants.INSUFFICIENT_AMOUNT_A);
         require(amountB >= amountBMin, Constants.INSUFFICIENT_AMOUNT_B);
 
-        reserve.reserveA = reserveA - amountA;
-        reserve.reserveB = reserveB - amountB;
-        liquidity[msg.sender] = userLiquidity - liquidityAmount;
+        // Update storage once
+        reserve.reserveA = _reserveA - amountA;
+        reserve.reserveB = _reserveB - amountB;
+        liquidity[msg.sender] = _userLiquidity - liquidityAmount;
 
         require(IERC20(tokenA).transfer(to, amountA), Constants.TOKEN_TRANSFER_1);
         require(IERC20(tokenB).transfer(to, amountB), Constants.TOKEN_TRANSFER_2);
@@ -157,26 +162,29 @@ contract SimpleSwap {
     {
         require(path.length == 2, Constants.INVALID_PATH);
         require(block.timestamp <= deadline, Constants.EXPIRED);
+        require(amountIn > 0, Constants.INVALID_AMOUNT);
 
         address tokenIn = path[0];
         address tokenOut = path[1];
 
+        // Cache storage reads
         Reserve storage reserve = reserves[tokenIn][tokenOut];
-        uint reserveIn = reserve.reserveA;
-        uint reserveOut = reserve.reserveB;
+        uint _reserveIn = reserve.reserveA;
+        uint _reserveOut = reserve.reserveB;
 
+        require(_reserveIn > 0 && _reserveOut > 0, Constants.NO_RESERVES);
         require(IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn), Constants.TRANSFER_FAILED);
 
-        require(amountIn > 0, Constants.INVALID_AMOUNT);
-        require(reserveIn > 0 && reserveOut > 0, Constants.NO_RESERVES);
+        // Calculate output with fee
         uint amountInWithFee = amountIn * Constants.FEE_NUMERATOR;
-        uint numerator = amountInWithFee * reserveOut;
-        uint denominator = reserveIn * Constants.FEE_DENOMINATOR + amountInWithFee;
+        uint numerator = amountInWithFee * _reserveOut;
+        uint denominator = _reserveIn * Constants.FEE_DENOMINATOR + amountInWithFee;
         uint amountOut = numerator / denominator;
         require(amountOut >= amountOutMin, Constants.INSUFFICIENT_OUTPUT);
 
-        reserve.reserveA = reserveIn + amountIn;
-        reserve.reserveB = reserveOut - amountOut;
+        // Update storage once
+        reserve.reserveA = _reserveIn + amountIn;
+        reserve.reserveB = _reserveOut - amountOut;
 
         require(IERC20(tokenOut).transfer(to, amountOut), Constants.TOKEN_TRANSFER);
 
@@ -193,8 +201,10 @@ contract SimpleSwap {
      */
     function getPrice(address tokenA, address tokenB) external view returns (uint price) {
         Reserve storage reserve = reserves[tokenA][tokenB];
-        require(reserve.reserveA > 0 && reserve.reserveB > 0, Constants.NO_RESERVES);
-        price = (reserve.reserveB * Constants.PRICE_PRECISION) / reserve.reserveA;
+        uint _reserveA = reserve.reserveA;
+        uint _reserveB = reserve.reserveB;
+        require(_reserveA > 0 && _reserveB > 0, Constants.NO_RESERVES);
+        price = (_reserveB * Constants.PRICE_PRECISION) / _reserveA;
     }
 
     /**
@@ -206,7 +216,9 @@ contract SimpleSwap {
      */
     function getReserves(address tokenA, address tokenB) external view returns (uint reserveA, uint reserveB) {
         Reserve storage reserve = reserves[tokenA][tokenB];
-        return (reserve.reserveA, reserve.reserveB);
+        uint _reserveA = reserve.reserveA;
+        uint _reserveB = reserve.reserveB;
+        return (_reserveA, _reserveB);
     }
 
     /**
@@ -226,7 +238,9 @@ contract SimpleSwap {
      */
     function hasLiquidity(address tokenA, address tokenB) external view returns (bool) {
         Reserve storage reserve = reserves[tokenA][tokenB];
-        return reserve.reserveA > 0 && reserve.reserveB > 0;
+        uint _reserveA = reserve.reserveA;
+        uint _reserveB = reserve.reserveB;
+        return _reserveA > 0 && _reserveB > 0;
     }
 
     /**
@@ -237,8 +251,8 @@ contract SimpleSwap {
      * @return amountOut Output amount
      */
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) public pure returns (uint amountOut) {
-        require(amountIn > 0, "AMT");
-        require(reserveIn > 0 && reserveOut > 0, "NORES");
+        require(amountIn > 0, Constants.INVALID_AMOUNT);
+        require(reserveIn > 0 && reserveOut > 0, Constants.NO_RESERVES);
         uint amountInWithFee = amountIn * Constants.FEE_NUMERATOR;
         uint numerator = amountInWithFee * reserveOut;
         uint denominator = reserveIn * Constants.FEE_DENOMINATOR + amountInWithFee;

@@ -2,15 +2,15 @@
 pragma solidity ^0.8.30;
 
 library Constants {
-    // Error messages
+    // Short error messages (3-4 chars max)
     string constant EXPIRED = "EXP";
     string constant INSUFFICIENT_LIQUIDITY = "LIQ";
-    string constant INSUFFICIENT_AMOUNT_A = "MINA";
-    string constant INSUFFICIENT_AMOUNT_B = "MINB";
-    string constant INSUFFICIENT_OUTPUT = "MINO";
-    string constant INVALID_PATH = "PATH";
+    string constant INSUFFICIENT_AMOUNT_A = "A<";
+    string constant INSUFFICIENT_AMOUNT_B = "B<";
+    string constant INSUFFICIENT_OUTPUT = "O<";
+    string constant INVALID_PATH = "PTH";
     string constant INVALID_AMOUNT = "AMT";
-    string constant NO_RESERVES = "NORES";
+    string constant NO_RESERVES = "NOR";
     string constant TRANSFER_FAILED_1 = "TF1";
     string constant TRANSFER_FAILED_2 = "TF2";
     string constant TRANSFER_FAILED = "TF";
